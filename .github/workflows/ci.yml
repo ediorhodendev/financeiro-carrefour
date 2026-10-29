@@ -41,6 +41,10 @@ jobs:
       - run: dotnet test Financial.slnx --no-build -c Release --logger trx --results-directory TestResults --collect:"XPlat Code Coverage"
       - name: Bounded API exercise with PostgreSQL
         run: bash scripts/benchmark-ci.sh
+      - name: Complete test suite inside Docker
+        run: |
+          trap 'docker compose -p carrefour-suite-ci --profile tests down -v' EXIT
+          docker compose -p carrefour-suite-ci --profile tests run --build --rm tests
       - name: Full Docker Compose evaluation smoke test
         run: bash scripts/test-docker.sh
       - uses: actions/upload-artifact@v6
