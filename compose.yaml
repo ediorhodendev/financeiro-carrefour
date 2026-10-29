@@ -1,0 +1,89 @@
+name: financeiro-carrefour
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: financial
+      POSTGRES_USER: financial_local
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financial-local-demo-only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - financial_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financial_local -d financial"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrations:
+    build: .
+    environment: &api-environment
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__Host: postgres
+      Database__Name: financial
+      Database__User: financial_local
+      Database__Password: ${POSTGRES_PASSWORD:-financial-local-demo-only}
+      Demo__Enabled: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["dotnet Financial.Api.dll --migrate && dotnet Financial.Api.dll --seed-demo"]
+    restart: "no"
+  api:
+    build: .
+    environment:
+      <<: *api-environment
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Messaging__Enabled: "true"
+      Messaging__Host: rabbitmq
+      Messaging__User: financial_local
+      Messaging__Password: ${RABBITMQ_PASSWORD:-rabbit-local-demo-only}
+    ports:
+      - "127.0.0.1:${API_PORT:-5080}:8080"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  rabbitmq:
+    image: rabbitmq:4.4.0-management
+    environment:
+      RABBITMQ_DEFAULT_USER: financial_local
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbit-local-demo-only}
+    ports:
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  tests:
+    build:
+      context: .
+      target: tests
+    profiles: ["tests"]
+    environment:
+      FINANCIAL_TEST_CONNECTION: Host=postgres-test;Database=financial_test;Username=financial_test;Password=${POSTGRES_PASSWORD:-financial-local-demo-only}
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+  postgres-test:
+    image: postgres:18.6
+    profiles: ['tests']
+    environment:
+      POSTGRES_DB: financial_test
+      POSTGRES_USER: financial_test
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financial-local-demo-only}
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financial_test -d financial_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  financial_data:
+  rabbit_data:

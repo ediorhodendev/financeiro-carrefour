@@ -10,3 +10,6 @@ TestResults/
 *.key
 secrets.json
 *.zip
+
+__pycache__/
+*.pyc
