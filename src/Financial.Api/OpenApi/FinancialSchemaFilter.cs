@@ -1,0 +1,43 @@
+using Financial.Api.Endpoints;
+using Financial.Domain.Accounts;
+using Financial.Domain.Movements;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
+namespace Financial.Api.OpenApi;
+
+public sealed class FinancialSchemaFilter : ISchemaFilter
+{
+    public void Apply(IOpenApiSchema input, SchemaFilterContext context)
+    {
+        if (input is not OpenApiSchema schema) return;
+        ApplySchema(schema, context);
+    }
+    private static void ApplySchema(OpenApiSchema schema, SchemaFilterContext context)
+    {
+        if (context.Type == typeof(MovementType))
+        {
+            schema.Type = JsonSchemaType.String;
+            schema.Format = null;
+            schema.Enum = [JsonValue.Create("Credit"), JsonValue.Create("Debit")];
+        }
+        if (context.Type == typeof(MovementRequest))
+        {
+            (schema.Required ??= new HashSet<string>()).Add("type");
+            (schema.Required ??= new HashSet<string>()).Add("amount");
+            if (schema.Properties is not null && schema.Properties.TryGetValue("amount", out var value) && value is OpenApiSchema amount)
+            {
+                amount.Minimum = "0.01";
+                amount.Maximum = Account.MaximumBalance.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                amount.MultipleOf = 0.01m;
+            }
+            schema.Example = new JsonObject { ["type"] = JsonValue.Create("Credit"), ["amount"] = JsonValue.Create(100) };
+        }
+        if (context.Type == typeof(CreateCustomerRequest))
+        {
+            (schema.Required ??= new HashSet<string>()).Add("name");
+            (schema.Required ??= new HashSet<string>()).Add("subjectId");
+            schema.Example = new JsonObject { ["name"] = JsonValue.Create("Demo Customer"), ["subjectId"] = JsonValue.Create("demo-customer-01") };
+        }
+    }
+}
