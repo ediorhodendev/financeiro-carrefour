@@ -1,6 +1,16 @@
 # Validation
 
-Validation results must be read from the GitHub Actions execution for the delivered commit; do not infer new results from the predecessor repository.
+## Verified execution
+
+[GitHub Actions run 40971701334](https://github.com/ediorhodendev/financeiro-carrefour/actions/runs/40971701334), source commit `7839e5b`, passed on 2026-10-29:
+
+- Build: zero errors and zero warnings.
+- 71 automated tests passed, zero skipped: 42 domain/application, 14 PostgreSQL integration and 15 HTTP/API tests.
+- Complete Docker stack passed: migrations, demo access, credit/debit, replay, receipts, duplicate-event deduplication, malformed-event DLQ and broker outage/recovery. Final balance: 75 BRL.
+- Bounded exercise: 100 balance reads and 100 credits, no HTTP failures; 100 credits of 0.01 BRL produced exactly 1.00 BRL.
+- TRX, coverage and Compose logs are attached as the test-results CI artifact (14-day retention).
+
+These are measured assessment checks, not peak-capacity or production-certification claims. Consult the workflow run for the current delivered commit when modifying code.
 
 The workflow restores and compiles with warnings treated as errors, runs all test projects against a real isolated PostgreSQL database, collects TRX/Cobertura coverage, executes a bounded load exercise and launches the complete Docker Compose stack. The Docker smoke verifies migrations, demo JWT, HTTP replay, debit/current balance, asynchronous receipts, duplicate-event deduplication, poison-message DLQ and financial operations during broker outage followed by Outbox recovery.
 
