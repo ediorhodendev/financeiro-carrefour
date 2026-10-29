@@ -1,0 +1,12 @@
+bin/
+obj/
+.env
+.vs/
+TestResults/
+*.user
+
+*.pfx
+*.pem
+*.key
+secrets.json
+*.zip
