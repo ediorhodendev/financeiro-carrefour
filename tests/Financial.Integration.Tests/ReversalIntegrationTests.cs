@@ -102,4 +102,12 @@ public sealed partial class MovementIntegrationTests
         Assert.Equal(PostgresErrorCodes.CheckViolation, error.SqlState);
         Assert.False(await db.Movements.AnyAsync(m => m.Id == id));
     }
+    [Fact] public async Task DatabaseRetainsStableNamesAfterApiCodesChange()
+    {
+        var account = await Seed();
+        var result = await Handler().ExecuteAsync(new(account.Id, MovementType.Credit, 1m, "numeric-api", account.Subject), default);
+        await using var db = new FinancialDbContext(Options());
+        var rows = await db.Database.SqlQuery<string>($"SELECT \"Type\" AS \"Value\" FROM movements WHERE \"Id\" = {result.Id}").ToListAsync();
+        Assert.Equal("Credit", Assert.Single(rows));
+    }
 }
