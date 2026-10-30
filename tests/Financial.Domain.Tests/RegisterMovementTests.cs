@@ -50,6 +50,8 @@ public sealed class RegisterMovementTests
         public RegisterMovementCommand Command(MovementType type, decimal amount) => new(Account.Id, type, amount, "test-key", "subject");
         public Task<IAccountTransaction> BeginAsync(Guid id, string subject, CancellationToken ct) { Opened = true; return Task.FromResult<IAccountTransaction>(this); }
         public Task<Movement?> FindMovementAsync(string key, CancellationToken ct) => Task.FromResult(Existing);
+        public Task<Movement?> FindMovementByIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Existing?.Id == id ? Existing : null);
+        public Task<bool> HasReversalAsync(Guid id, CancellationToken ct) => Task.FromResult(false);
         public Task<DateTimeOffset> GetRegistrationTimeAsync(CancellationToken ct) => Task.FromResult(DateTimeOffset.UtcNow);
         public Task CommitAsync(Movement movement, CancellationToken ct) { Existing = movement; Commits++; return Task.CompletedTask; }
         public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }

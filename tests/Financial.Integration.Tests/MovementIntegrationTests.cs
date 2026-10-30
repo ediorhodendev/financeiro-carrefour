@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 namespace Financial.Integration.Tests;
-public sealed class MovementIntegrationTests
+public sealed partial class MovementIntegrationTests
 {
     private static DbContextOptions<FinancialDbContext> Options(params IInterceptor[] interceptors)
     {
@@ -177,7 +177,7 @@ public sealed class MovementIntegrationTests
     {
         var account = await Seed();
         var result = await Handler().ExecuteAsync(new(account.Id, MovementType.Credit, 1m, "receipt", account.Subject), default);
-        var message = new Financial.Application.Messaging.MovementRecorded(1, result.Id, result.Id, account.Id,
+        var message = new Financial.Application.Messaging.MovementRecorded(2, result.Id, result.Id, account.Id,
             MovementType.Credit, 1m, result.RegisteredAt);
         var store = new Financial.Infrastructure.Messaging.ReceiptStore(new Factory(Options()));
         await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => store.RecordAsync(message, default)));

@@ -81,7 +81,7 @@ public sealed class MovementMessagingWorker(
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(TimeSpan.FromSeconds(10));
             await channel.BasicPublishAsync(Exchange, "", mandatory: true,
-                basicProperties: new BasicProperties { Persistent = true, ContentType = "application/json", MessageId = message.Id.ToString(), Type = "MovementRecorded.v1" },
+                basicProperties: new BasicProperties { Persistent = true, ContentType = "application/json", MessageId = message.Id.ToString(), Type = "MovementRecorded" },
                 body: Encoding.UTF8.GetBytes(message.Payload), cancellationToken: timeout.Token);
             message.MarkPublished(DateTimeOffset.UtcNow);
         }
@@ -98,8 +98,7 @@ public sealed class MovementMessagingWorker(
             if (delivery is null) return;
             try
             {
-                var message = JsonSerializer.Deserialize<MovementRecorded>(delivery.Body.Span)
-                    ?? throw new JsonException("Empty integration event.");
+                var message = MovementRecorded.Deserialize(delivery.Body.Span);
                 await receipts.RecordAsync(message, ct);
                 await channel.BasicAckAsync(delivery.DeliveryTag, multiple: false, cancellationToken: ct);
             }

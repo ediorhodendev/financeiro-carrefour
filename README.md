@@ -2,6 +2,15 @@
 
 A focused financial ledger assessment by Edio Rhoden. C#/.NET 10, PostgreSQL, RabbitMQ, Clean Architecture, explicit dependency injection and lightweight CQRS. All source identifiers and documentation are in English.
 
+## Operation codes
+
+| type | Operation |
+|---|---|
+| `1` | Credit: adds funds |
+| `2` | Debit: removes funds |
+
+Requests and responses use numbers. For example, `{"type":1,"amount":100}`. Zero, unknown codes and string names are rejected with 400. This replaces the previous string-based HTTP contract; existing database rows and pending legacy messages are preserved. See [operation codes and compatibility](docs/operation-codes.md).
+
 ## Run everything with one command
 
 Prerequisite: Docker Desktop with Linux containers and Compose v2 (or Docker Engine with Compose v2). No local .NET, PostgreSQL, RabbitMQ or `.env` file is required.
@@ -14,9 +23,9 @@ Open [Swagger](http://localhost:5080/swagger). Compose starts PostgreSQL and Rab
 
 1. Execute `POST /demo/access` in Swagger. Copy `accountId` and `operatorToken`.
 2. Click **Authorize**, paste only `operatorToken` and authorize.
-3. Execute `POST /api/accounts/{accountId}/movements`, with `Idempotency-Key: first-credit` and body `{"type":"Credit","amount":100}`.
+3. Execute `POST /api/accounts/{accountId}/movements`, with `Idempotency-Key: first-credit` and body `{"type":1,"amount":100}`.
 4. Repeat the same request/key: response is 200 with the original movement, without a second credit. New key means a new operation.
-5. Submit `{"type":"Debit","amount":30}` with another key.
+5. Submit `{"type":2,"amount":30}` with another key.
 6. Query `/balance` (70 BRL), `/movements` and `/receipts`. Receipts demonstrate asynchronous, idempotent RabbitMQ consumption; allow a short delay.
 7. For historical balance, supply `at` with the exact credit's `registeredAt`; the debit is excluded when its timestamp is later.
 8. Use `adminToken` from `/demo/access` to create another customer and open their account. The customer's `subjectId` must match their external identity provider's JWT `sub`.
@@ -55,6 +64,7 @@ Money is committed synchronously. RabbitMQ transports integration events, never 
 | POST | `/api/customers/{customerId}/accounts` | admin |
 | GET | `/api/accounts/{accountId}` | owner or admin |
 | POST | `/api/accounts/{accountId}/movements` | operator + ownership; Idempotency-Key required |
+| POST | `/api/accounts/{accountId}/movements/{movementId}/reversal` | operator + ownership; full reversal with reason and Idempotency-Key |
 | GET | `/api/accounts/{accountId}/balance?at=...` | operator + ownership |
 | GET | `/api/accounts/{accountId}/movements?limit=50&cursor=...` | operator + ownership |
 | GET | `/api/accounts/{accountId}/receipts` | operator + ownership; latest 100 |
@@ -85,6 +95,8 @@ For integration tests, set `FINANCIAL_TEST_CONNECTION` to an **isolated test Pos
 
 ## Decisions, rules and delivery
 
+- [Stable operation codes and compatibility](docs/operation-codes.md)
+- [Full reversal rules and Swagger examples](docs/reversals.md)
 - [Business rules](docs/business-rules.md)
 - [Architecture and failure behavior](docs/architecture.md)
 - [Requirement mapping](docs/requirements.md)

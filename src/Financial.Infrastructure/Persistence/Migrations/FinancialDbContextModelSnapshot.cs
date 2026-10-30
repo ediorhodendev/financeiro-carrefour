@@ -109,12 +109,23 @@ namespace Financial.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<Guid?>("ReversalOfMovementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReversalReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(6)
                         .HasColumnType("character varying(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReversalOfMovementId")
+                        .IsUnique()
+                        .HasFilter("\"ReversalOfMovementId\" IS NOT NULL");
 
                     b.HasIndex("AccountId", "IdempotencyKey")
                         .IsUnique();
@@ -124,6 +135,8 @@ namespace Financial.Infrastructure.Persistence.Migrations
                     b.ToTable("movements", null, t =>
                         {
                             t.HasCheckConstraint("ck_amount", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("ck_reversal_metadata", "(\"ReversalOfMovementId\" IS NULL AND \"ReversalReason\" IS NULL) OR (\"ReversalOfMovementId\" IS NOT NULL AND \"ReversalOfMovementId\" <> \"Id\" AND \"ReversalReason\" IS NOT NULL AND length(btrim(\"ReversalReason\")) BETWEEN 1 AND 500)");
 
                             t.HasCheckConstraint("ck_type", "\"Type\" IN ('Credit', 'Debit')");
                         });
@@ -191,6 +204,11 @@ namespace Financial.Infrastructure.Persistence.Migrations
                         .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Financial.Domain.Movements.Movement", null)
+                        .WithMany()
+                        .HasForeignKey("ReversalOfMovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

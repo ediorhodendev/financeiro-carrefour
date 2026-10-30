@@ -1,5 +1,4 @@
 using Financial.Api.Messaging;
-using System.Text.Json.Serialization;
 using Financial.Api.Development;
 using Financial.Api.Endpoints;
 using Financial.Api.Errors;
@@ -25,13 +24,13 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.RespectRequiredConstructorParameters = true;
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<MovementType>(allowIntegerValues: false));
 });
 builder.Services.AddDbContextFactory<FinancialDbContext>(options => options.UseNpgsql(
     DatabaseConnection(builder.Configuration),
     postgres => postgres.CommandTimeout(15)));
 builder.Services.AddScoped<IAccountTransactionFactory, PostgresAccountTransactionFactory>();
 builder.Services.AddScoped<RegisterMovementHandler>();
+builder.Services.AddScoped<ReverseMovementHandler>();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 builder.Services.AddScoped<IAccountQueryStore, PostgresAccountQueryStore>();
 builder.Services.AddScoped<AccountQueries>();
@@ -50,7 +49,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Financeiro Carrefour API", Version = "v1", Description = "Credits, debits and historical balances. Use a local development JWT via Authorize. All amounts are BRL." });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Financeiro Carrefour API", Version = "v1", Description = "Credits, debits and historical balances. Use a local development JWT via Authorize. All amounts are BRL. Movement type codes: 1 = Credit, 2 = Debit." });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Paste only the JWT token (without the Bearer prefix)." });
     options.OperationFilter<FinancialOperationFilter>();
     options.SchemaFilter<FinancialSchemaFilter>();
@@ -140,6 +139,7 @@ app.MapGet("/api/accounts/{accountId:guid}/receipts", async (Guid accountId, Htt
     return Results.Ok(items);
 }).RequireAuthorization(policy => policy.RequireRole("operator")).WithTags("Messaging")
     .WithSummary("Latest 100 idempotent consumer receipts; eventually consistent.");
+app.MapReversalEndpoints();
 app.MapAccountReadEndpoints();
 app.MapProvisioningEndpoints();
 app.Run();

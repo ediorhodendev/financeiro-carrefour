@@ -18,7 +18,7 @@ public sealed class FinancialOperationFilter : IOperationFilter
         }
         var path = context.ApiDescription.RelativePath ?? "";
         operation.Parameters ??= [];
-        if (path.EndsWith("/movements", StringComparison.Ordinal) && context.ApiDescription.HttpMethod == "POST")
+        if ((path.EndsWith("/movements", StringComparison.Ordinal) || path.EndsWith("/reversal", StringComparison.Ordinal)) && context.ApiDescription.HttpMethod == "POST")
             operation.Parameters.Add(new OpenApiParameter
             {
                 Name = "Idempotency-Key", In = ParameterLocation.Header, Required = true,

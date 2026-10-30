@@ -5,7 +5,8 @@ using Financial.Domain.Movements;
 namespace Financial.Application.Queries;
 
 public sealed record AccountBalanceSnapshot(Guid AccountId, string Currency, decimal Balance, DateTimeOffset CreatedAt);
-public sealed record MovementItem(Guid Id, MovementType Type, decimal Amount, DateTimeOffset RegisteredAt);
+public sealed record MovementItem(Guid Id, MovementType Type, decimal Amount, DateTimeOffset RegisteredAt,
+    Guid? ReversalOfMovementId = null, string? ReversalReason = null);
 public sealed record MovementPage(IReadOnlyList<MovementItem> Items, string? NextCursor);
 public sealed record MovementCursor(int Version, Guid AccountId, DateTimeOffset At, Guid Id);
 public interface IAccountQueryStore

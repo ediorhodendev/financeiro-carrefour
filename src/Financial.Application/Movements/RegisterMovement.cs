@@ -14,6 +14,8 @@ public interface IAccountTransaction : IAsyncDisposable
 {
     Account Account { get; }
     Task<Movement?> FindMovementAsync(string key, CancellationToken cancellationToken);
+    Task<Movement?> FindMovementByIdAsync(Guid movementId, CancellationToken cancellationToken);
+    Task<bool> HasReversalAsync(Guid movementId, CancellationToken cancellationToken);
     Task<DateTimeOffset> GetRegistrationTimeAsync(CancellationToken cancellationToken);
     Task CommitAsync(Movement movement, CancellationToken cancellationToken);
 }

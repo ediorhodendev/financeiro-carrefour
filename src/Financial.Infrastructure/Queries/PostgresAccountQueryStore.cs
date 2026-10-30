@@ -29,6 +29,6 @@ public sealed class PostgresAccountQueryStore(IDbContextFactory<FinancialDbConte
         if (after is not null)
             query = query.Where(m => m.RegisteredAt > after.At || m.RegisteredAt == after.At && m.Id.CompareTo(after.Id) > 0);
         return await query.OrderBy(m => m.RegisteredAt).ThenBy(m => m.Id).Take(take)
-            .Select(m => new MovementItem(m.Id, m.Type, m.Amount, m.RegisteredAt)).ToListAsync(ct);
+            .Select(m => new MovementItem(m.Id, m.Type, m.Amount, m.RegisteredAt, m.ReversalOfMovementId, m.ReversalReason)).ToListAsync(ct);
     }
 }

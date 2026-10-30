@@ -14,9 +14,9 @@ public sealed class MovementEventTests
         message.Validate();
         Assert.Equal(movement.Id, message.EventId); Assert.Equal(movement.Id, message.MovementId);
         Assert.Equal(movement.AccountId, message.AccountId); Assert.Equal(12.34m, message.Amount);
-        Assert.Equal(movement.RegisteredAt, message.RegisteredAt); Assert.Equal(1, message.Version);
+        Assert.Equal(movement.RegisteredAt, message.RegisteredAt); Assert.Equal(2, message.Version);
     }
-    [Theory] [InlineData(0)] [InlineData(2)]
+    [Theory] [InlineData(0)] [InlineData(3)]
     public void UnsupportedVersionsAreRejected(int version) => Assert.Throws<ArgumentException>(() =>
         (MovementRecorded.From(Movement()) with { Version = version }).Validate());
     [Fact] public void EmptyEventIdIsRejected() => Assert.Throws<ArgumentException>(() =>
