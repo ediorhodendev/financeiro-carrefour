@@ -21,7 +21,7 @@ def main():
         data=None
         if args.write_demo:
             headers.update({'Content-Type':'application/json','Idempotency-Key':str(uuid.uuid4())})
-            data=json.dumps({'type':'Credit','amount':0.01}).encode()
+            data=json.dumps({'type':1,'amount':0.01}).encode()
         start=time.perf_counter()
         try:
             with urllib.request.urlopen(urllib.request.Request(args.base_url.rstrip('/')+path,data=data,headers=headers),timeout=20) as response:

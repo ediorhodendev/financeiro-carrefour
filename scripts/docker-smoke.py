@@ -41,11 +41,11 @@ _, demo = request('/demo/access', {})
 account, token = demo['accountId'], demo['operatorToken']
 path = '/api/accounts/' + account
 prefix = str(uuid.uuid4())
-status, credit = request(path + '/movements', {'type': 'Credit', 'amount': 100}, token, prefix+'-credit')
+status, credit = request(path + '/movements', {'type': 1, 'amount': 100}, token, prefix+'-credit')
 assert status == 201
-status, replay = request(path + '/movements', {'type': 'Credit', 'amount': 100}, token, prefix+'-credit')
+status, replay = request(path + '/movements', {'type': 1, 'amount': 100}, token, prefix+'-credit')
 assert status == 200 and credit['id'] == replay['id']
-status, debit = request(path + '/movements', {'type': 'Debit', 'amount': 30}, token, prefix+'-debit')
+status, debit = request(path + '/movements', {'type': 2, 'amount': 30}, token, prefix+'-debit')
 assert status == 201
 assert request(path + '/balance', token=token)[1]['balance'] == 70
 expected = {credit['id'], debit['id']}
@@ -68,7 +68,7 @@ assert sum(r['eventId'] == credit['id'] for r in request(path + '/receipts', tok
 
 # Financial writes must remain available while the message broker is unavailable.
 subprocess.run(['docker', 'compose', '-p', 'carrefour-ci', 'stop', 'rabbitmq'], check=True)
-status, offline = request(path + '/movements', {'type': 'Credit', 'amount': 5}, token, prefix+'-offline')
+status, offline = request(path + '/movements', {'type': 1, 'amount': 5}, token, prefix+'-offline')
 assert status == 201
 assert request(path + '/balance', token=token)[1]['balance'] == 75
 subprocess.run(['docker', 'compose', '-p', 'carrefour-ci', 'start', 'rabbitmq'], check=True)
@@ -78,7 +78,7 @@ assert request(path + '/balance', token=token)[1]['balance'] == 75
 # Reverse the 5 BRL credit exactly once and wait for its integration receipt.
 reversal_path = path + '/movements/' + offline['id'] + '/reversal'
 status, reversal = request(reversal_path, {'reason': 'Incorrect demo credit'}, token, prefix+'-reversal')
-assert status == 201 and reversal['type'] == 'Debit' and reversal['amount'] == 5
+assert status == 201 and reversal['type'] == 2 and reversal['amount'] == 5
 assert reversal['reversalOfMovementId'] == offline['id']
 status, replay = request(reversal_path, {'reason': 'Incorrect demo credit'}, token, prefix+'-reversal')
 assert status == 200 and replay['replayed'] and replay['id'] == reversal['id']
