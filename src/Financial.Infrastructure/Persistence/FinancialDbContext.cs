@@ -42,7 +42,11 @@ public sealed class FinancialDbContext(DbContextOptions<FinancialDbContext> opti
         account.Property(x => x.Currency).HasMaxLength(3).IsRequired();
         account.HasOne<Customer>().WithOne().HasForeignKey<Account>(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
         var movement = model.Entity<Movement>();
-        movement.ToTable("movements", t => { t.HasCheckConstraint("ck_amount", "\"Amount\" > 0"); t.HasCheckConstraint("ck_type", "\"Type\" IN ('Credit', 'Debit')"); });
+        movement.ToTable("movements", t => { t.HasCheckConstraint("ck_amount", "\"Amount\" > 0"); t.HasCheckConstraint("ck_type", "\"Type\" IN ('Credit', 'Debit')");
+            t.HasCheckConstraint("ck_reversal_metadata", "(\"ReversalOfMovementId\" IS NULL AND \"ReversalReason\" IS NULL) OR (\"ReversalOfMovementId\" IS NOT NULL AND \"ReversalOfMovementId\" <> \"Id\" AND \"ReversalReason\" IS NOT NULL AND length(btrim(\"ReversalReason\")) BETWEEN 1 AND 500)"); });
+        movement.Property(x => x.ReversalReason).HasMaxLength(500);
+        movement.HasIndex(x => x.ReversalOfMovementId).IsUnique().HasFilter("\"ReversalOfMovementId\" IS NOT NULL");
+        movement.HasOne<Movement>().WithMany().HasForeignKey(x => x.ReversalOfMovementId).OnDelete(DeleteBehavior.Restrict);
         movement.HasKey(x => x.Id); movement.Property(x => x.Amount).HasPrecision(18, 2);
         movement.Property(x => x.Type).HasConversion<string>().HasMaxLength(6);
         movement.Property(x => x.IdempotencyKey).HasMaxLength(100).IsRequired();
