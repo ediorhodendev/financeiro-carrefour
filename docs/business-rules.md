@@ -15,3 +15,5 @@ These are explicit assumptions where the assessment is open-ended.
 11. One MovementRecorded.v1 event is persisted per committed movement; HTTP replay creates no event. Event ID equals movement ID. Events contain no customer name, token or idempotency key.
 12. The consumer records a processing receipt as the demonstrative integration effect. Event ID uniqueness and INSERT ON CONFLICT make reprocessing atomic and harmless. Consumer receipts never modify balances.
 13. Receipt reads are eventually consistent, limited to the latest 100 and scoped to the account owner. Receipt presence demonstrates consumption, not an external customer notification.
+
+14. Full reversals are linked compensating movements with a mandatory reason, at most once per original. No reversal of a reversal, no partial reversal, no overdraft or balance overflow. See [reversal rules](reversals.md).
