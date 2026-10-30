@@ -13,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 namespace Financial.Integration.Tests;
-public sealed class MovementIntegrationTests
+public sealed partial class MovementIntegrationTests
 {
     private static DbContextOptions<FinancialDbContext> Options(params IInterceptor[] interceptors)
     {
