@@ -33,6 +33,13 @@ public sealed class FinancialSchemaFilter : ISchemaFilter
             }
             schema.Example = new JsonObject { ["type"] = JsonValue.Create("Credit"), ["amount"] = JsonValue.Create(100) };
         }
+        if (context.Type == typeof(ReversalRequest))
+        {
+            (schema.Required ??= new HashSet<string>()).Add("reason");
+            if (schema.Properties is not null && schema.Properties.TryGetValue("reason", out var value) && value is OpenApiSchema reason)
+            { reason.MinLength = 1; reason.MaxLength = 500; }
+            schema.Example = new JsonObject { ["reason"] = JsonValue.Create("Movement registered incorrectly") };
+        }
         if (context.Type == typeof(CreateCustomerRequest))
         {
             (schema.Required ??= new HashSet<string>()).Add("name");
