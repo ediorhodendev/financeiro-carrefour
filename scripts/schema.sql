@@ -167,3 +167,72 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    ALTER TABLE movements ADD "ReversalOfMovementId" uuid;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    ALTER TABLE movements ADD "ReversalReason" character varying(500);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    CREATE UNIQUE INDEX "IX_movements_ReversalOfMovementId" ON movements ("ReversalOfMovementId") WHERE "ReversalOfMovementId" IS NOT NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    ALTER TABLE movements ADD CONSTRAINT ck_reversal_metadata CHECK (("ReversalOfMovementId" IS NULL AND "ReversalReason" IS NULL) OR ("ReversalOfMovementId" IS NOT NULL AND "ReversalOfMovementId" <> "Id" AND "ReversalReason" IS NOT NULL AND length(btrim("ReversalReason")) BETWEEN 1 AND 500));
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    ALTER TABLE movements ADD CONSTRAINT "FK_movements_movements_ReversalOfMovementId" FOREIGN KEY ("ReversalOfMovementId") REFERENCES movements ("Id") ON DELETE RESTRICT;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    CREATE FUNCTION validate_movement_reversal() RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE original movements%ROWTYPE;
+    BEGIN
+        IF NEW."ReversalOfMovementId" IS NULL THEN RETURN NEW; END IF;
+        SELECT * INTO original FROM movements WHERE "Id" = NEW."ReversalOfMovementId";
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Original movement not found' USING ERRCODE = '23503';
+        END IF;
+        IF original."AccountId" <> NEW."AccountId" OR original."ReversalOfMovementId" IS NOT NULL
+            OR original."Amount" <> NEW."Amount" OR original."Type" = NEW."Type" THEN
+            RAISE EXCEPTION 'Invalid full movement reversal' USING ERRCODE = '23514';
+        END IF;
+        RETURN NEW;
+    END;
+    $$;
+    CREATE TRIGGER movements_validate_reversal BEFORE INSERT ON movements
+    FOR EACH ROW EXECUTE FUNCTION validate_movement_reversal();
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20261030185026_AddMovementReversals') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20261030185026_AddMovementReversals', '10.0.14');
+    END IF;
+END $EF$;
+COMMIT;
+
