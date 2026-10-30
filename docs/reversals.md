@@ -19,7 +19,7 @@ Requires an operator JWT belonging to the account owner and one `Idempotency-Key
 - The account row lock serializes reversal, credit and debit operations. Database unique index on ReversalOfMovementId prevents duplicate compensation even if application-level checks are bypassed. A foreign key, metadata check and insertion trigger protect the original reference, same-account pairing, inverse type/equal amount and prohibition on reversing a reversal.
 - Balance, compensating movement and Outbox event are committed together. Any failure rolls back all three. Replaying a successful request never creates another movement/event, even if current funds would no longer permit the original action.
 - Current balance includes the compensation. Historical queries before its registration retain the original balance; the original timestamp is never rewritten. Statement items identify a reversal using reversalOfMovementId and reversalReason. Query the statement to find the compensation for a given original.
-- The compensation emits the existing MovementRecorded.v1 contract, with optional reversalOfMovementId metadata. Old events without this field remain valid. Receipt processing remains idempotent by the compensation's event ID.
+- The compensation emits MovementRecorded.v2 with optional reversalOfMovementId metadata and numeric type 1=Credit/2=Debit. The consumer also translates legacy v1 payloads (0=Credit/1=Debit), including events already waiting in the Outbox or broker. Receipt processing remains idempotent by the compensation's event ID.
 
 ## Swagger test
 
