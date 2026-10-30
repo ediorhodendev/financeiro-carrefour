@@ -55,6 +55,7 @@ Money is committed synchronously. RabbitMQ transports integration events, never 
 | POST | `/api/customers/{customerId}/accounts` | admin |
 | GET | `/api/accounts/{accountId}` | owner or admin |
 | POST | `/api/accounts/{accountId}/movements` | operator + ownership; Idempotency-Key required |
+| POST | `/api/accounts/{accountId}/movements/{movementId}/reversal` | operator + ownership; full reversal with reason and Idempotency-Key |
 | GET | `/api/accounts/{accountId}/balance?at=...` | operator + ownership |
 | GET | `/api/accounts/{accountId}/movements?limit=50&cursor=...` | operator + ownership |
 | GET | `/api/accounts/{accountId}/receipts` | operator + ownership; latest 100 |
@@ -85,6 +86,7 @@ For integration tests, set `FINANCIAL_TEST_CONNECTION` to an **isolated test Pos
 
 ## Decisions, rules and delivery
 
+- [Full reversal rules and Swagger examples](docs/reversals.md)
 - [Business rules](docs/business-rules.md)
 - [Architecture and failure behavior](docs/architecture.md)
 - [Requirement mapping](docs/requirements.md)
