@@ -38,6 +38,10 @@ public sealed class PostgresAccountTransactionFactory(IDbContextFactory<Financia
         public Account Account { get; } = account;
         public Task<Movement?> FindMovementAsync(string key, CancellationToken ct) =>
             db.Movements.AsNoTracking().SingleOrDefaultAsync(m => m.AccountId == Account.Id && m.IdempotencyKey == key, ct);
+        public Task<Movement?> FindMovementByIdAsync(Guid id, CancellationToken ct) =>
+            db.Movements.AsNoTracking().SingleOrDefaultAsync(m => m.AccountId == Account.Id && m.Id == id, ct);
+        public Task<bool> HasReversalAsync(Guid id, CancellationToken ct) =>
+            db.Movements.AnyAsync(m => m.AccountId == Account.Id && m.ReversalOfMovementId == id, ct);
         public async Task<DateTimeOffset> GetRegistrationTimeAsync(CancellationToken ct)
         {
             // PostgreSQL now() is the transaction start time, before waiting for the account lock.
