@@ -107,38 +107,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.MapGet("/health/live", () => Results.Ok(new { status = "alive" })).WithTags("Health");
-app.MapGet("/health/ready", async (FinancialDbContext db, CancellationToken ct) =>
-{
-    // Readiness checks schema availability too, without returning financial data.
-    await db.Accounts.Select(a => a.Id).Take(1).ToArrayAsync(ct);
-    return Results.Ok(new { status = "ready" });
-}).WithTags("Health");
-app.MapPost("/api/accounts/{accountId:guid}/movements", async (
-    Guid accountId, MovementRequest request, HttpContext context, RegisterMovementHandler handler, CancellationToken ct) =>
-{
-    var subject = context.User.FindFirst("sub")?.Value;
-    if (string.IsNullOrWhiteSpace(subject)) return Results.Unauthorized();
-    if (!context.Request.Headers.TryGetValue("Idempotency-Key", out var keys) || keys.Count != 1)
-        return Results.Problem(statusCode: 400, title: "Provide one Idempotency-Key header.");
-    var result = await handler.ExecuteAsync(new RegisterMovementCommand(accountId, request.Type, request.Amount, keys[0] ?? "", subject), ct);
-    return Results.Json(result, statusCode: result.Replayed ? 200 : 201);
-}).RequireAuthorization(policy => policy.RequireRole("operator")).WithTags("Movements")
-    .WithSummary("Register a credit or debit atomically; retries reuse Idempotency-Key.")
-    .Produces<MovementResult>(201).Produces<MovementResult>(200).ProducesProblem(400)
-    .ProducesProblem(404).ProducesProblem(409).ProducesProblem(503);
+app.MapHealthEndpoints();
+app.MapMovementEndpoints();
 if (demo is not null) demo.MapEndpoints(app);
-app.MapGet("/api/accounts/{accountId:guid}/receipts", async (Guid accountId, HttpContext context,
-    FinancialDbContext db, AccountQueries queries, CancellationToken ct) =>
-{
-    var subject = context.User.FindFirst("sub")?.Value;
-    if (string.IsNullOrWhiteSpace(subject)) return Results.Unauthorized();
-    await queries.ExecuteAsync(accountId, subject, null, ct);
-    var items = await db.ProcessingReceipts.AsNoTracking().Where(r => r.AccountId == accountId)
-        .OrderByDescending(r => r.ProcessedAt).Take(100).ToListAsync(ct);
-    return Results.Ok(items);
-}).RequireAuthorization(policy => policy.RequireRole("operator")).WithTags("Messaging")
-    .WithSummary("Latest 100 idempotent consumer receipts; eventually consistent.");
+app.MapReceiptEndpoints();
 app.MapReversalEndpoints();
 app.MapAccountReadEndpoints();
 app.MapProvisioningEndpoints();
@@ -155,5 +127,4 @@ static string DatabaseConnection(IConfiguration configuration)
         Password = configuration["Database:Password"] ?? throw new InvalidOperationException("Set ConnectionStrings__Financial or Database__Password.")
     }.ConnectionString;
 }
-public sealed record MovementRequest(MovementType Type, decimal Amount);
 public partial class Program { }
