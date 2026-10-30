@@ -1,6 +1,7 @@
 using Financial.Domain.Accounts;
 namespace Financial.Domain.Movements;
-public enum MovementType { Credit, Debit }
+// Stable public operation codes. Never renumber or reuse these values.
+public enum MovementType { Credit = 1, Debit = 2 }
 public sealed class Movement
 {
     private Movement() { }
