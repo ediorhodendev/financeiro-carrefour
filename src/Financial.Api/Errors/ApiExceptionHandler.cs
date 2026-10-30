@@ -11,7 +11,7 @@ public sealed class ApiExceptionHandler(IProblemDetailsService problems) : IExce
         {
             BadHttpRequestException bad => (bad.StatusCode, "Invalid request."),
             ArgumentException => (400, "Invalid request."),
-            AccountNotFoundException or CustomerNotFoundException => (404, "Resource not found."),
+            AccountNotFoundException or MovementNotFoundException or CustomerNotFoundException => (404, "Resource not found."),
             MovementConflictException or ProvisioningConflictException => (409, exception.Message),
             _ when IsDatabaseUnavailable(exception) => (503, "Database temporarily unavailable. For movements retry with the same idempotency key."),
             _ => (500, "An unexpected error occurred.")
