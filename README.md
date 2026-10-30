@@ -23,6 +23,21 @@ As versões são fixadas nos arquivos do projeto para tornar a execução reprod
 
 A solução usa injeção de dependência explícita e CQRS simples: comandos alteram o estado e consultas leem os dados por caminhos separados. Ambos utilizam o mesmo banco de dados. Não é necessário MediatR nem separar a aplicação em microsserviços para demonstrar esses conceitos.
 
+## Organização dos endpoints
+
+A API usa Minimal APIs organizadas por funcionalidade. O `Program.cs` configura os serviços, os middlewares e chama os métodos de mapeamento; os handlers HTTP ficam em arquivos próprios:
+
+| Arquivo em `src/Financial.Api/Endpoints` | Responsabilidade |
+|---|---|
+| `MovementEndpoints.cs` | Registro de crédito e débito e contrato `MovementRequest` |
+| `ReversalEndpoints.cs` | Estorno integral |
+| `AccountReadEndpoints.cs` | Saldo atual/histórico e extrato paginado |
+| `ProvisioningEndpoints.cs` | Cadastro e consulta de clientes e contas |
+| `ReceiptEndpoints.cs` | Consulta dos recibos do consumidor |
+| `HealthEndpoints.cs` | Liveness e readiness |
+
+O acesso demonstrativo permanece em `Development/DemoAccess.cs`, habilitado apenas em desenvolvimento. As regras financeiras continuam no domínio e nos handlers da aplicação; os endpoints traduzem HTTP para os casos de uso. Essa organização mantém as camadas e o CQRS existentes, sem adicionar outro framework nem uma migração completa para Vertical Slice Architecture.
+
 ## Executar com Docker
 
 Pré-requisito: Docker Desktop com containers Linux e Compose v2, ou Docker Engine com Compose v2. Não é necessário instalar .NET, PostgreSQL ou RabbitMQ localmente. Não é necessário criar `.env`.
