@@ -32,6 +32,7 @@ builder.Services.AddDbContextFactory<FinancialDbContext>(options => options.UseN
     postgres => postgres.CommandTimeout(15)));
 builder.Services.AddScoped<IAccountTransactionFactory, PostgresAccountTransactionFactory>();
 builder.Services.AddScoped<RegisterMovementHandler>();
+builder.Services.AddScoped<ReverseMovementHandler>();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 builder.Services.AddScoped<IAccountQueryStore, PostgresAccountQueryStore>();
 builder.Services.AddScoped<AccountQueries>();
@@ -140,6 +141,7 @@ app.MapGet("/api/accounts/{accountId:guid}/receipts", async (Guid accountId, Htt
     return Results.Ok(items);
 }).RequireAuthorization(policy => policy.RequireRole("operator")).WithTags("Messaging")
     .WithSummary("Latest 100 idempotent consumer receipts; eventually consistent.");
+app.MapReversalEndpoints();
 app.MapAccountReadEndpoints();
 app.MapProvisioningEndpoints();
 app.Run();
