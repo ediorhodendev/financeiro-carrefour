@@ -12,8 +12,8 @@ public sealed class ApiValidationTests
         using var json = JsonDocument.Parse(await client.GetStringAsync("/swagger/v1/swagger.json"));
         Assert.True(json.RootElement.GetProperty("components").GetProperty("securitySchemes").TryGetProperty("Bearer", out _));
         var schemas = json.RootElement.GetProperty("components").GetProperty("schemas");
-        Assert.Equal("string", schemas.GetProperty("MovementType").GetProperty("type").GetString());
-        Assert.Equal(new[] { "Credit", "Debit" }, schemas.GetProperty("MovementType").GetProperty("enum").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("integer", schemas.GetProperty("MovementType").GetProperty("type").GetString());
+        Assert.Equal(new[] { 1, 2 }, schemas.GetProperty("MovementType").GetProperty("enum").EnumerateArray().Select(e => e.GetInt32()));
         Assert.Contains(schemas.GetProperty("MovementRequest").GetProperty("required").EnumerateArray(), e => e.GetString() == "amount");
         var paths = json.RootElement.GetProperty("paths");
         Assert.True(paths.TryGetProperty("/api/customers", out _));
@@ -69,5 +69,16 @@ public sealed class ApiValidationTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
         client.DefaultRequestHeaders.Add("Idempotency-Key", "missing-type");
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync($"/api/accounts/{Guid.NewGuid()}/movements", new { amount = 10m })).StatusCode);
+    }
+    [Theory]
+    [InlineData("0")] [InlineData("3")] [InlineData("-1")] [InlineData("1.5")]
+    [InlineData("\"Credit\"")] [InlineData("\"Debit\"")] [InlineData("\"1\"")]
+    public async Task OnlyDocumentedNumericOperationCodesAreAccepted(string code)
+    {
+        await using var factory = new ApiFactory(); using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", factory.Token());
+        client.DefaultRequestHeaders.Add("Idempotency-Key", "invalid-code");
+        using var content = new StringContent("{\"type\":" + code + ",\"amount\":10}", System.Text.Encoding.UTF8, "application/json");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync($"/api/accounts/{Guid.NewGuid()}/movements", content)).StatusCode);
     }
 }
