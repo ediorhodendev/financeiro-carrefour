@@ -4,6 +4,33 @@ API de movimentações financeiras desenvolvida como projeto de avaliação téc
 
 O código, as classes e os contratos da API estão em inglês. Este guia está em português.
 
+## Outra implementação disponível para avaliação: versão 2
+
+A [versão 2 — financeiro-carrefour-v2](https://github.com/ediorhodendev/financeiro-carrefour-v2) **também pode ser clonada, executada com Docker e testada**. É uma implementação independente para comparar decisões arquiteturais; não é uma atualização que migra os dados desta versão.
+
+Para executar a alternativa:
+
+```sh
+git clone https://github.com/ediorhodendev/financeiro-carrefour-v2.git
+cd financeiro-carrefour-v2
+docker compose up --build -d
+```
+
+Na v2, a documentação interativa usa Scalar: [escrita em 5081](http://localhost:5081/scalar/v1) e [leitura em 5082](http://localhost:5082/scalar/v1). O [README da v2](https://github.com/ediorhodendev/financeiro-carrefour-v2/blob/main/README.md) contém os payloads, a autenticação e o roteiro de testes. Cada versão usa seus próprios containers e volumes; obtenha os tokens em cada ambiente.
+
+| Decisão | Esta versão (v1) | Alternativa (v2) |
+|---|---|---|
+| Entrada HTTP | Minimal APIs organizadas por funcionalidade | Controllers com `[ApiController]` |
+| Implantação | API com worker hospedado no mesmo processo | Ledger.Api, Balance.Api e Balance.Worker |
+| Leitura financeira | Consulta o banco financeiro diretamente | Consulta projeção assíncrona, com posição processada |
+| RabbitMQ | Demonstra integração por recibos | Alimenta a projeção de saldo e extrato |
+| Precisão monetária | Até duas casas decimais | Até quatro casas decimais |
+| Replay HTTP concluído | `200` com `replayed: true` | Preserva `201` e o corpo original, com header de replay |
+
+**Por que usamos esta arquitetura na v1?** O escopo permite manter a execução simples, com uma aplicação e um banco, separando domínio, casos de uso e infraestrutura. Minimal APIs reduzem a estrutura HTTP necessária; handlers e entidades concentram as regras. CQRS leve separa escrita e consulta sem exigir bancos distintos. Transação, bloqueio por conta e idempotência protegem a correção financeira; a Outbox permite demonstrar falhas de integração sem colocar o broker no caminho da consulta de saldo.
+
+**Por que oferecer a v2?** Ela explora outra escolha: separar processos de escrita, leitura e consumo e tornar explícitos os custos de consistência eventual, reentrega, eventos fora de ordem e operação de múltiplos pools de conexão. Ambas preservam ledger imutável e estorno compensatório. A escolha entre elas depende dos requisitos de leitura e implantação; quantidade de processos, por si só, não é garantia de qualidade.
+
 ## Tecnologias e organização
 
 - C# e .NET 10; ASP.NET Core; Entity Framework Core.
@@ -411,3 +438,4 @@ Os documentos técnicos abaixo mantêm o detalhamento em inglês:
 - [Mapeamento dos requisitos](docs/requirements.md)
 - [Decisões e versões](docs/decisions.md)
 - [Validação e limites](docs/validation.md)
+
